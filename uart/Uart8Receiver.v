@@ -47,7 +47,7 @@ module Uart8Receiver (
                 bitIdx <= 3'b0;
                 clockCount <= 4'b0;
                 receivedData <= 8'b0;
-                //inputSw <= 2'b11;
+                inputSw <= 2'b11;
                 if (en) begin
                     state <= `IDLE;
                 end
@@ -91,7 +91,6 @@ module Uart8Receiver (
             end
 
             `WAIT_STOP: begin
-                sampleReg <= 0;
                 if (&clockCount) begin
                     clockCount <= 4'b0;
                     state <= `STOP_BIT;
