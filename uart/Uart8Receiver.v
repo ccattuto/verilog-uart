@@ -19,7 +19,7 @@ module Uart8Receiver (
 );
     reg [2:0] state = `RESET;
     reg [2:0] bitIdx = 3'b0; // for 8-bit data
-    reg [1:0] inputSw = 2'b0; // shift reg for input signal state
+    reg [1:0] inputSw = 2'b11; // shift reg for input signal state
     reg [3:0] clockCount = 4'b0; // count clocks for 16x oversample
     reg [7:0] receivedData = 8'b0; // temporary storage for input data
 
@@ -28,6 +28,7 @@ module Uart8Receiver (
         err <= 1'b0;
         done <= 1'b0;
         busy <= 1'b0;
+        inputSw = 2'b11;
     end
 
     always @(posedge clk) begin
@@ -46,6 +47,7 @@ module Uart8Receiver (
                 bitIdx <= 3'b0;
                 clockCount <= 4'b0;
                 receivedData <= 8'b0;
+                //inputSw <= 2'b11;
                 if (en) begin
                     state <= `IDLE;
                 end
@@ -53,7 +55,7 @@ module Uart8Receiver (
 
             `IDLE: begin
                 done <= 1'b0;
-                if (clockCount >= 4'h8) begin
+                if (clockCount >= 4'h6) begin
                     state <= `DATA_BITS;
                     out <= 8'b0;
                     bitIdx <= 3'b0;
@@ -61,9 +63,9 @@ module Uart8Receiver (
                     receivedData <= 8'b0;
                     busy <= 1'b1;
                     err <= 1'b0;
-                end else if (!(&inputSw) || (|clockCount)) begin
+                end else if (!(|inputSw) || (|clockCount)) begin
                     // Check bit to make sure it's still low
-                    if (&inputSw) begin
+                    if (|inputSw) begin
                         err <= 1'b1;
                         state <= `RESET;
                     end
@@ -79,10 +81,20 @@ module Uart8Receiver (
                     receivedData[bitIdx] <= inputSw[0];
                     if (&bitIdx) begin
                         bitIdx <= 3'b0;
-                        state <= `STOP_BIT;
+                        state <= `WAIT_STOP;
                     end else begin
                         bitIdx <= bitIdx + 3'b1;
                     end
+                end else begin
+                    clockCount <= clockCount + 4'b1;
+                end
+            end
+
+            `WAIT_STOP: begin
+                sampleReg <= 0;
+                if (&clockCount) begin
+                    clockCount <= 4'b0;
+                    state <= `STOP_BIT;
                 end else begin
                     clockCount <= clockCount + 4'b1;
                 end
@@ -93,7 +105,7 @@ module Uart8Receiver (
             * transmitter. Next start bit is allowed on at least half of stop bit.
             */
             `STOP_BIT: begin
-                if (&clockCount || (clockCount >= 4'h8 && !(|inputSw))) begin
+                if (clockCount == 4'h8) begin
                     state <= `IDLE;
                     done <= 1'b1;
                     busy <= 1'b0;
@@ -102,7 +114,7 @@ module Uart8Receiver (
                 end else begin
                     clockCount <= clockCount + 1;
                     // Check bit to make sure it's still high
-                    if (!(|inputSw)) begin
+                    if (!(&inputSw)) begin
                         err <= 1'b1;
                         state <= `RESET;
                     end
