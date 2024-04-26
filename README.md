@@ -1,8 +1,10 @@
 verilog-uart
 ============
-Simple 8-bit UART realization on [Verilog HDL](https://en.wikipedia.org/wiki/Verilog).
+Simple 8-bit UART implementation in [Verilog HDL](https://en.wikipedia.org/wiki/Verilog).
 
-Able to operate 8 bits of serial data, one start bit, one stop bit.
+This is a fork of [verilog-uart](https://github.com/hell03end/verilog-uart). It fixes several issues with the transmit and receive code and adds majority voting for bit sampling. It was synthesized using [Yosys](https://github.com/YosysHQ/yosys) and successfully tested on an FPGA (up to 115200 baud driven by a 48 MHz clock, both transmit and receive.)
+
+It assumes 8 data bits, 1 start bit, 1 stop bit, and no parity. The receiver uses 16x oversampling and majority voting over 3 samples.
 
 Usage
 -----
