@@ -19,7 +19,7 @@ module Uart8Receiver (
 );
     reg [2:0] state = `RESET;
     reg [2:0] bitIdx = 3'b0; // for 8-bit data
-    reg [1:0] inputSw = 2'b11; // shift reg for input signal state
+    reg [2:0] inputSw = 3'b111; // shift reg for input signal state
     reg [3:0] clockCount = 4'b0; // count clocks for 16x oversample
     reg [7:0] receivedData = 8'b0; // temporary storage for input data
 
@@ -28,11 +28,11 @@ module Uart8Receiver (
         err <= 1'b0;
         done <= 1'b0;
         busy <= 1'b0;
-        inputSw = 2'b11;
+        inputSw = 3'b111;
     end
 
     always @(posedge clk) begin
-        inputSw <= { inputSw[0], in };
+        inputSw <= { inputSw[1], inputSw[0], in };
 
         if (!en) begin
             state <= `RESET;
@@ -47,7 +47,7 @@ module Uart8Receiver (
                 bitIdx <= 3'b0;
                 clockCount <= 4'b0;
                 receivedData <= 8'b0;
-                inputSw <= 2'b11;
+                inputSw <= 3'b111;
                 if (en) begin
                     state <= `IDLE;
                 end
@@ -55,7 +55,7 @@ module Uart8Receiver (
 
             `IDLE: begin
                 done <= 1'b0;
-                if (clockCount >= 4'h6) begin
+                if (clockCount >= 4'h5) begin
                     state <= `DATA_BITS;
                     out <= 8'b0;
                     bitIdx <= 3'b0;
@@ -77,8 +77,7 @@ module Uart8Receiver (
             `DATA_BITS: begin
                 if (&clockCount) begin // save one bit of received data
                     clockCount <= 4'b0;
-                    // TODO: check the most popular value
-                    receivedData[bitIdx] <= inputSw[0];
+                    receivedData[bitIdx] <= (inputSw[0] & inputSw[1]) | (inputSw[0] & inputSw[2]) | (inputSw[1] & inputSw[2]);
                     if (&bitIdx) begin
                         bitIdx <= 3'b0;
                         state <= `WAIT_STOP;
