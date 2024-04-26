@@ -37,10 +37,10 @@ module Uart8Receiver (
     end
 
     always @(posedge clk) begin
-        inputSw = { inputSw[0], in };
+        inputSw <= { inputSw[0], in };
 
         if (!en) begin
-            state = RESET;
+            state <= RESET;
         end
 
         case (state)
@@ -59,7 +59,7 @@ module Uart8Receiver (
 
             IDLE: begin
                 done <= 1'b0;
-                if (&clockCount) begin
+                if (clockCount >= 4'h8) begin
                     state <= DATA_BITS;
                     out <= 8'b0;
                     bitIdx <= 3'b0;
@@ -67,7 +67,7 @@ module Uart8Receiver (
                     receivedData <= 8'b0;
                     busy <= 1'b1;
                     err <= 1'b0;
-                end else if (!(&inputSw) || |clockCount) begin
+                end else if (!(&inputSw) || (|clockCount)) begin
                     // Check bit to make sure it's still low
                     if (&inputSw) begin
                         err <= 1'b1;
