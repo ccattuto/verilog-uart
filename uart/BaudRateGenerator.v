@@ -25,14 +25,14 @@ end
 
 always @(posedge clk) begin
     // rx clock
-    if (rxCounter == MAX_RATE_RX[RX_CNT_WIDTH-1:0]) begin
+    if (rxCounter == MAX_RATE_RX - 1) begin
         rxCounter <= 0;
         rxClk <= ~rxClk;
     end else begin
         rxCounter <= rxCounter + 1'b1;
     end
     // tx clock
-    if (txCounter == MAX_RATE_TX[TX_CNT_WIDTH-1:0]) begin
+    if (txCounter == MAX_RATE_TX - 1) begin
         txCounter <= 0;
         txClk <= ~txClk;
     end else begin
