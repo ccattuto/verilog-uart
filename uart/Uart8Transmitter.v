@@ -32,13 +32,13 @@ module Uart8Transmitter (
                 data    <= 8'b0;
                 if (valid & en) begin
                     data    <= in; // save a copy of input data
+                    ready   <= 1'b0;
                     state   <= `START_BIT;
                 end
             end
 
             `START_BIT  : begin
                 out     <= 1'b0; // send start bit (low)
-                ready   <= 1'b0;
                 state   <= `DATA_BITS;
             end
 
