@@ -1,8 +1,10 @@
 verilog-uart
 ============
-Simple 8-bit UART realization on [Verilog HDL](https://en.wikipedia.org/wiki/Verilog).
+Simple 8-bit UART implementation in [Verilog HDL](https://en.wikipedia.org/wiki/Verilog).
 
-Able to operate 8 bits of serial data, one start bit, one stop bit.
+This is a fork of [verilog-uart](https://github.com/hell03end/verilog-uart). It fixes several issues with the transmit and receive code and adds majority voting for bit sampling. It was synthesized using [Yosys](https://github.com/YosysHQ/yosys) and successfully tested on an FPGA (up to 115200 baud driven by a 48 MHz clock, both transmit and receive.)
+
+It assumes 8 data bits, 1 start bit, 1 stop bit, and no parity. The receiver uses 16x oversampling and majority voting over 3 samples.
 
 Usage
 -----
@@ -33,46 +35,4 @@ Usage
 * `txDone` - **[output]** end of transaction (1 posedge clk)
 * `txBusy` - **[output]** transaction is in progress
 
-Demo
-----
-![structure](rsc/uart_structure.png)
 
-Uart functional modeling on:
-* `CLOCK_RATE=32`
-* `BAUD_RATE=1`
-* `T(clk) = 0.5us`
-* `T(rxEn) = 800us`
-* `T(rx) = 128us`
-* `T(txEn) = 700us`
-* `T(txStart) = 200us`
-* `T(in) = 30us` (counter inc by 1)
-
-![uart functional modeling](rsc/uart_func_model.png)
-
-Receiver functional modeling on:
-* `T(clk) = 1us`
-* `en=1`
-* `T(rx) = 144us`
-
-![receiver functional modeling](rsc/rx_func_model.png)
-
-Transmitter functional modeling on:
-* `T(clk) = 1us`
-* `en=1`
-* `T(start) = 200us`
-* `T(in) = 30us` (counter inc by 1)
-
-![transmitter functional modeling](rsc/tx_func_model.png)
-
-Baud rate generator functional modeling on:
-* `CLOCK_RATE=32`
-* `BAUD_RATE=1`
-* `T(clk) = 0.5us`
-
-![baud rate generator functional modeling](rsc/baud_gen_func_model.png)
-
-
-TODO
-----
-* testbench
-* parameter to control data width
