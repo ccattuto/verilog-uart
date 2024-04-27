@@ -8,31 +8,29 @@ It assumes 8 data bits, 1 start bit, 1 stop bit, and no parity. The receiver use
 
 Usage
 -----
-![uart](rsc/uart.png)
 
 ### Parameters:
-* `CLOCK_RATE` - board internal clock rate
+* `CLOCK_RATE` - clock rate
 * `BAUD_RATE` - target baud rate
 
 ### IO:
 
 #### control:
-* `clk` - **[input]** board internal clock
+* `clk` - **[input]** clock signal
 
 #### rx interface:
-* `rx` - **[input]** receiver input
+* `rx` - **[input]** RX line
 * `rxEn` - **[input]** enable/disable receiver
 * `out[7..0]` - **[output]** received data
-* `rxDone` - **[output]** end of transaction (1 posedge clk)
-* `rxBusy` - **[output]** transaction is in progress
+* `rxValid` - **[output]** end of transaction (1 posedge clk)
+* `rxReady` - **[output]** low when RX is in progress
 * `rxErr` - **[output]** transaction error: invalid start/stop bit (1 posedge clk)
 
 #### tx interface:
 * `txEn` - **[input]** enable/disable transmitter
-* `txStart` - **[input]** start of transaction (1 posedge clk)
+* `txValid` - **[input]** start of transaction (1 posedge clk)
 * `in[7..0]` - **[input]** data to transmit (stored inside while transaction is in progress)
-* `tx` - **[output]** transmitter output
-* `txDone` - **[output]** end of transaction (1 posedge clk)
-* `txBusy` - **[output]** transaction is in progress
+* `tx` - **[output]** TX line
+* `txReady` - **[output]** low when TX is in progress
 
 
