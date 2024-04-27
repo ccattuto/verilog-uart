@@ -3,9 +3,9 @@
 /*
  * 8-bit UART Receiver.
  * Able to receive 8 bits of serial data, one start bit, one stop bit.
- * When receive is complete {done} is driven high for one clock cycle.
+ * When receive is complete {valid} is driven high.
  * Output data should be taken away by a few clocks or can be lost.
- * When receive is in progress {busy} is driven high.
+ * When receive is in progress {ready} is driven low.
  * Clock should be decreased to baud rate.
  */
 module Uart8Receiver (
@@ -13,10 +13,11 @@ module Uart8Receiver (
     input  wire       en,
     input  wire       in,   // rx
     output reg  [7:0] out,  // received data
-    output reg        done, // end on transaction
-    output reg        busy, // transaction is in process
+    output reg        valid, // end on transaction
+    output reg        ready, // transaction is in process
     output reg        err   // error while receiving data
 );
+    
     reg [2:0] state = `RESET;
     reg [2:0] bitIdx = 3'b0; // for 8-bit data
     reg [2:0] inputSw = 3'b111; // shift reg for input signal state
@@ -26,8 +27,8 @@ module Uart8Receiver (
     initial begin
         out <= 8'b0;
         err <= 1'b0;
-        done <= 1'b0;
-        busy <= 1'b0;
+        valid <= 1'b0;
+        ready <= 1'b1;
         inputSw = 3'b111;
     end
 
@@ -42,8 +43,8 @@ module Uart8Receiver (
             `RESET: begin
                 out <= 8'b0;
                 err <= 1'b0;
-                done <= 1'b0;
-                busy <= 1'b0;
+                valid <= 1'b0;
+                ready <= 1'b1;
                 bitIdx <= 3'b0;
                 clockCount <= 4'b0;
                 receivedData <= 8'b0;
@@ -54,14 +55,14 @@ module Uart8Receiver (
             end
 
             `IDLE: begin
-                done <= 1'b0;
+                valid <= 1'b0;
                 if (clockCount >= 4'h5) begin
                     state <= `DATA_BITS;
                     out <= 8'b0;
                     bitIdx <= 3'b0;
                     clockCount <= 4'b0;
                     receivedData <= 8'b0;
-                    busy <= 1'b1;
+                    ready <= 1'b0;
                     err <= 1'b0;
                 end else if (!(|inputSw) || (|clockCount)) begin
                     // Check bit to make sure it's still low
@@ -105,8 +106,8 @@ module Uart8Receiver (
             `STOP_BIT: begin
                 if (clockCount == 4'h8) begin
                     state <= `IDLE;
-                    done <= 1'b1;
-                    busy <= 1'b0;
+                    valid <= 1'b1;
+                    ready <= 1'b1;
                     out <= receivedData;
                     clockCount <= 4'b0;
                 end else begin
@@ -119,7 +120,7 @@ module Uart8Receiver (
                 end
             end
 
-            default: state <= `IDLE;
+            default: state <= `RESET;
         endcase
     end
 

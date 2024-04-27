@@ -13,17 +13,16 @@ module Uart8  #(
     input wire rx,
     input wire rxEn,
     output wire [7:0] out,
-    output wire rxDone,
-    output wire rxBusy,
+    output wire rxValid,
+    output wire rxReady,
     output wire rxErr,
-
+    
     // tx interface
     output wire tx,
     input wire txEn,
-    input wire txStart,
     input wire [7:0] in,
-    output wire txDone,
-    output wire txBusy
+    input wire txValid,
+    output wire txReady
 );
 wire rxClk;
 wire txClk;
@@ -42,19 +41,18 @@ Uart8Receiver rxInst (
     .en(rxEn),
     .in(rx),
     .out(out),
-    .done(rxDone),
-    .busy(rxBusy),
+    .valid(rxValid),
+    .ready(rxReady),
     .err(rxErr)
 );
 
 Uart8Transmitter txInst (
     .clk(txClk),
     .en(txEn),
-    .start(txStart),
     .in(in),
     .out(tx),
-    .done(txDone),
-    .busy(txBusy)
+    .valid(txValid),
+    .ready(txReady)
 );
 
 endmodule
