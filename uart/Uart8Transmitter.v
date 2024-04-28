@@ -1,9 +1,8 @@
-/*
- * 8-bit UART Transmitter.
- * Able to transmit 8 bits of serial data, one start bit, one stop bit.
- * When transmit is in progress {ready} is driven low.
- * Clock should be decreased to baud rate.
- */
+//
+// UART Transmitter
+// 
+//
+//
 
  // states of state machine
 `define IDLE        3'b010
@@ -12,9 +11,9 @@
 `define WAIT_STOP   3'b101
 `define STOP_BIT    3'b110
 
-module Uart8Transmitter #(
+module UARTTransmitter #(
     parameter CLOCK_RATE = 50000000,
-    parameter BAUD_RATE = 9600
+    parameter BAUD_RATE = 115200
 )(
     input  wire       clk,      // clock
     input  wire       reset,    // reset

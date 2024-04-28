@@ -1,10 +1,11 @@
-/*
- * 8-bit UART Receiver.
- * Able to receive 8 bits of serial data, one start bit, one stop bit.
- * When receive is complete {valid} is driven high for one clock cycle.
- * Output data should be taken away by a few clocks or can be lost.
- * Clock should be decreased to baud rate.
- */
+//
+// UART Receiver
+//
+// Able to receive 8 bits of serial data, one start bit, one stop bit.
+// When receive is complete {valid} is driven high for one clock cycle.
+// Output data should be taken away by a few clocks or can be lost.
+// Clock should be decreased to baud rate.
+//
 
  // states of state machine
 `define RESET       3'b001
@@ -13,9 +14,9 @@
 `define WAIT_STOP   3'b101
 `define STOP_BIT    3'b110
 
-module Uart8Receiver #(
+module UARTReceiver #(
     parameter CLOCK_RATE = 50000000,
-    parameter BAUD_RATE = 9600
+    parameter BAUD_RATE = 115200
 )(
     input  wire       clk,      // clock
     input  wire       reset,    // reset
@@ -23,9 +24,7 @@ module Uart8Receiver #(
     input  wire       in,       // RX line
     output reg  [7:0] out,      // received data
     output reg        valid,    // RX completed
-    output reg        err,      // error while receiving data
-    output wire [2:0] sreg,
-    output wire       sample
+    output reg        err       // error while receiving data
 );
     parameter MAX_RATE_RX = CLOCK_RATE / (BAUD_RATE * 16); // 16x oversample
     parameter RX_CNT_WIDTH = $clog2(MAX_RATE_RX);
@@ -43,10 +42,6 @@ module Uart8Receiver #(
         valid <= 0;
         inputSw = 3'b111;
     end
-
-    assign sreg = inputSw;
-    assign sample = sampleReg;
-    reg sampleReg = 0;
 
     always @(posedge clk) begin
         if (reset || !en) begin
@@ -99,7 +94,6 @@ module Uart8Receiver #(
                     if (&clockCount) begin // save one bit of received data
                         clockCount <= 4'b0;
                         receivedData[bitIdx] <= (inputSw[0] & inputSw[1]) | (inputSw[0] & inputSw[2]) | (inputSw[1] & inputSw[2]);
-                        sampleReg <= 1;
                         if (&bitIdx) begin
                             bitIdx <= 3'b0;
                             state <= `WAIT_STOP;
@@ -108,12 +102,10 @@ module Uart8Receiver #(
                         end
                     end else begin
                         clockCount <= clockCount + 1;
-                        sampleReg <= 0;
                     end
                 end
 
                 `WAIT_STOP: begin
-                    sampleReg <= 0;
                     if (&clockCount) begin
                         clockCount <= 4'b0;
                         state <= `STOP_BIT;
