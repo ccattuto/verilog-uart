@@ -1,23 +1,36 @@
-`include "UartStates.vh"
-
 /*
  * 8-bit UART Receiver.
  * Able to receive 8 bits of serial data, one start bit, one stop bit.
- * When receive is complete {valid} is driven high.
+ * When receive is complete {valid} is driven high for one clock cycle.
  * Output data should be taken away by a few clocks or can be lost.
- * When receive is in progress {ready} is driven low.
  * Clock should be decreased to baud rate.
  */
-module Uart8Receiver (
-    input  wire       clk,  // baud rate
-    input  wire       en,
-    input  wire       in,   // rx
-    output reg  [7:0] out,  // received data
-    output reg        valid, // end on transaction
-    output reg        ready, // transaction is in process
-    output reg        err   // error while receiving data
+
+ // states of state machine
+`define RESET       3'b001
+`define IDLE        3'b010
+`define DATA_BITS   3'b100
+`define WAIT_STOP   3'b101
+`define STOP_BIT    3'b110
+
+module Uart8Receiver #(
+    parameter CLOCK_RATE = 50000000,
+    parameter BAUD_RATE = 9600
+)(
+    input  wire       clk,      // clock
+    input  wire       reset,    // reset
+    input  wire       en,       // enable
+    input  wire       in,       // RX line
+    output reg  [7:0] out,      // received data
+    output reg        valid,    // RX completed
+    output reg        err,      // error while receiving data
+    output wire [2:0] sreg,
+    output wire       sample
 );
-    
+    parameter MAX_RATE_RX = CLOCK_RATE / (BAUD_RATE * 16); // 16x oversample
+    parameter RX_CNT_WIDTH = $clog2(MAX_RATE_RX);
+    reg [RX_CNT_WIDTH - 1:0] rxCounter = 0;
+
     reg [2:0] state = `RESET;
     reg [2:0] bitIdx = 3'b0; // for 8-bit data
     reg [2:0] inputSw = 3'b111; // shift reg for input signal state
@@ -26,102 +39,109 @@ module Uart8Receiver (
 
     initial begin
         out <= 8'b0;
-        err <= 1'b0;
-        valid <= 1'b0;
-        ready <= 1'b1;
+        err <= 0;
+        valid <= 0;
         inputSw = 3'b111;
     end
 
+    assign sreg = inputSw;
+    assign sample = sampleReg;
+    reg sampleReg = 0;
+
     always @(posedge clk) begin
-        inputSw <= { inputSw[1], inputSw[0], in };
-
-        if (!en) begin
+        if (reset || !en) begin
             state <= `RESET;
-        end
+            rxCounter <= 0;
+        end else if (rxCounter < MAX_RATE_RX - 1) begin
+            // RX clock
+            rxCounter <= rxCounter + 1;
+            valid <= 0; // make sure valid flag stays high for only 1 clock cycle
+        end else begin
+            rxCounter <= 0;
 
-        case (state)
-            `RESET: begin
-                out <= 8'b0;
-                err <= 1'b0;
-                valid <= 1'b0;
-                ready <= 1'b1;
-                bitIdx <= 3'b0;
-                clockCount <= 4'b0;
-                receivedData <= 8'b0;
-                inputSw <= 3'b111;
-                if (en) begin
-                    state <= `IDLE;
-                end
-            end
+            inputSw <= { inputSw[1], inputSw[0], in };
 
-            `IDLE: begin
-                valid <= 1'b0;
-                if (clockCount >= 4'h5) begin
-                    state <= `DATA_BITS;
+            case (state)
+                `RESET: begin
                     out <= 8'b0;
+                    err <= 0;
+                    valid <= 0;
+                    inputSw <= 3'b111;
                     bitIdx <= 3'b0;
                     clockCount <= 4'b0;
                     receivedData <= 8'b0;
-                    ready <= 1'b0;
-                    err <= 1'b0;
-                end else if (!(|inputSw) || (|clockCount)) begin
-                    // Check bit to make sure it's still low
-                    if (|inputSw) begin
-                        err <= 1'b1;
-                        state <= `RESET;
+                    if (en) begin
+                        state <= `IDLE;
                     end
-                    clockCount <= clockCount + 4'b1;
                 end
-            end
 
-            // Wait 8 full cycles to receive serial data
-            `DATA_BITS: begin
-                if (&clockCount) begin // save one bit of received data
-                    clockCount <= 4'b0;
-                    receivedData[bitIdx] <= (inputSw[0] & inputSw[1]) | (inputSw[0] & inputSw[2]) | (inputSw[1] & inputSw[2]);
-                    if (&bitIdx) begin
+                `IDLE: begin
+                    valid <= 0;
+                    if (clockCount >= 4'h5) begin
+                        state <= `DATA_BITS;
+                        out <= 8'b0;
                         bitIdx <= 3'b0;
-                        state <= `WAIT_STOP;
+                        clockCount <= 4'b0;
+                        receivedData <= 8'b0;
+                        err <= 0;
+                    end else if (!(|inputSw) || (|clockCount)) begin
+                        // Check bit to make sure it's still low
+                        if (|inputSw) begin
+                            err <= 1;
+                            state <= `RESET;
+                        end
+                        clockCount <= clockCount + 1;
+                    end
+                end
+
+                // receive 8 bits of data
+                `DATA_BITS: begin
+                    if (&clockCount) begin // save one bit of received data
+                        clockCount <= 4'b0;
+                        receivedData[bitIdx] <= (inputSw[0] & inputSw[1]) | (inputSw[0] & inputSw[2]) | (inputSw[1] & inputSw[2]);
+                        sampleReg <= 1;
+                        if (&bitIdx) begin
+                            bitIdx <= 3'b0;
+                            state <= `WAIT_STOP;
+                        end else begin
+                            bitIdx <= bitIdx + 1;
+                        end
                     end else begin
-                        bitIdx <= bitIdx + 3'b1;
-                    end
-                end else begin
-                    clockCount <= clockCount + 4'b1;
-                end
-            end
-
-            `WAIT_STOP: begin
-                if (&clockCount) begin
-                    clockCount <= 4'b0;
-                    state <= `STOP_BIT;
-                end else begin
-                    clockCount <= clockCount + 4'b1;
-                end
-            end
-
-            /*
-            * Baud clock may not be running at exactly the same rate as the
-            * transmitter. Next start bit is allowed on at least half of stop bit.
-            */
-            `STOP_BIT: begin
-                if (clockCount == 4'h8) begin
-                    state <= `IDLE;
-                    valid <= 1'b1;
-                    ready <= 1'b1;
-                    out <= receivedData;
-                    clockCount <= 4'b0;
-                end else begin
-                    clockCount <= clockCount + 1;
-                    // Check bit to make sure it's still high
-                    if (!(&inputSw)) begin
-                        err <= 1'b1;
-                        state <= `RESET;
+                        clockCount <= clockCount + 1;
+                        sampleReg <= 0;
                     end
                 end
-            end
 
-            default: state <= `RESET;
-        endcase
+                `WAIT_STOP: begin
+                    sampleReg <= 0;
+                    if (&clockCount) begin
+                        clockCount <= 4'b0;
+                        state <= `STOP_BIT;
+                    end else begin
+                        clockCount <= clockCount + 1;
+                    end
+                end
+
+                // check for at least half a stop bit
+                `STOP_BIT: begin
+                    if (clockCount == 4'h8) begin
+                        state <= `IDLE;
+                        valid <= 1;
+                        out <= receivedData;
+                        clockCount <= 4'b0;
+                    end else begin
+                        clockCount <= clockCount + 1;
+                        // Check bit to make sure it's still high
+                        if (!(&inputSw)) begin
+                            err <= 1;
+                            state <= `RESET;
+                        end
+                    end
+                end
+
+                default: state <= `RESET;
+            endcase
+        end
     end
 
 endmodule
