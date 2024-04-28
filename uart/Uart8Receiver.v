@@ -3,6 +3,9 @@
 //
 //  - 8N1 only (8-bit data word, 1 start bit, 1 stop bit)
 //  - "valid" goes high for exactly 1 clock cycle after successful RX 
+//  - internal baud rate generation
+//  - 16x baud rate oversampling, majority voting over 3 samples for bit sensing
+//  - tested on an FPGA at 115200 baud driven by a 48 MHz clock
 //
 //
 // MIT License

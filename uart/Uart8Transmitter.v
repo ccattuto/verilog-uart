@@ -3,7 +3,9 @@
 //
 //  - 8N1 only (8-bit data word, 1 start bit, 1 stop bit)
 //  - "ready" is high when ready for TX
-//  - user drives "valid" high for 1 clock cycle to start TX 
+//  - user drives "valid" high for 1 clock cycle to start TX
+//  - internal baud rate generation
+//  - tested on an FPGA at 115200 baud driven by a 48 MHz clock
 //
 //
 // MIT License
