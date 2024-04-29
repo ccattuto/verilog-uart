@@ -2,35 +2,55 @@ verilog-uart
 ============
 Simple 8-bit UART implementation in [Verilog HDL](https://en.wikipedia.org/wiki/Verilog).
 
-This is a fork of [verilog-uart](https://github.com/hell03end/verilog-uart) (which doesn't work). It fixes several issues with the transmit and receive code, adds majority voting for bit sampling, and uses valid/ready signals for control. It was synthesized using [Yosys](https://github.com/YosysHQ/yosys) and successfully tested on an FPGA (up to 115200 baud driven by a 48 MHz clock, both transmit and receive.)
+This is originally based on [verilog-uart](https://github.com/hell03end/verilog-uart), which doesn't work. It fixes several issues with the transmit and receive code, adds majority voting for bit sampling, and introduces valid/ready signals for control. It was synthesized using [Yosys](https://github.com/YosysHQ/yosys) and successfully tested on an FPGA (up to 115200 baud driven by a 48 MHz clock, both transmit and receive.)
 
-It assumes 8 data bits, 1 start bit, 1 stop bit, and no parity. The receiver uses 16x oversampling and majority voting over 3 samples.
+It assumes 8 data bits, 1 start bit, 1 stop bit, and no parity. The receiver uses 16x oversampling and majority voting over 3 consecutive samples. The transmit and receive modules are separate and can be used independently. 
 
-Usage
------
 
-### Parameters:
-* `CLOCK_RATE` - clock rate
-* `BAUD_RATE` - target baud rate
+## UART Transmitter
 
-### IO:
+### Parameters
+* `CLOCK_RATE` - clock rate (default 50 MHz)
+* `BAUD_RATE` - target baud rate (default 115200 baud)
 
-#### control:
-* `clk` - **[input]** clock signal
+### Interface
+* `clk`  [input wire] - clock (gets divided internally for baud generation)
+* `reset` [intput wire] - reset signal
+* `enable` [input wire] - enable signal
+* `valid` [input wire] - starts TX when held high for 1 clock cycle
+* `in` [input wires, 8-bit wide] - byte to transmit, latched internally when `valid` goes high
+* `out` [output register] - UART TX signal
+* `ready` [output register] - high when the module is ready to transmit a new byte
 
-#### rx interface:
-* `rx` - **[input]** RX line
-* `rxEn` - **[input]** enable/disable receiver
-* `out[7..0]` - **[output]** received data
-* `rxValid` - **[output]** end of transaction (1 posedge clk)
-* `rxReady` - **[output]** low when RX is in progress
-* `rxErr` - **[output]** transaction error: invalid start/stop bit (1 posedge clk)
+### Notes
+* 8N1 only (8-bit data word, 1 start bit, 1 stop bit)
+* internal baud rate generation
+* `ready` goes high when the transmitter is ready to send
+* to start TX, the user drives `valid` high for 1 clock cycle 
 
-#### tx interface:
-* `txEn` - **[input]** enable/disable transmitter
-* `txValid` - **[input]** start of transaction (1 posedge clk)
-* `in[7..0]` - **[input]** data to transmit (stored inside while transaction is in progress)
-* `tx` - **[output]** TX line
-* `txReady` - **[output]** low when TX is in progress
+
+## UART Receiver
+
+### Parameters
+* `CLOCK_RATE` - clock rate (default 50 MHz)
+* `BAUD_RATE` - target baud rate (default 115200 baud)
+
+### Interface
+* `clk` [input wire] - clock (gets divided internally for baud generation)
+* `reset` [intput wire] - reset signal
+* `enable` [input wire] - enable signal
+* `in` [input wire] - UART RX signal
+* `ready` [input wire] - driven high to signal that the received byte in `out` was processed and a new RX transaction can begin
+* `out` [output 8-bit register] - received byte
+* `valid` [output register] - goes high when `out` contains a received byte
+* `err` [output register] - high when an error occurred during RX
+
+### Notes
+* 8N1 only (8-bit data word, 1 start bit, 1 stop bit)
+* `valid` goes high after successful RX and stays high for at least 1 clock cycle
+* `valid` is cleared as soon as a high `ready` is detected
+* internal baud rate generation
+* 16x baud rate oversampling, majority voting over 3 samples for bit sensing
+* buffered read: a new RX can start before the last byte has been read
 
 
