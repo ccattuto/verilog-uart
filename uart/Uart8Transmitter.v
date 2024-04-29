@@ -46,7 +46,7 @@ module UARTTransmitter #(
 )(
     input  wire       clk,      // clock
     input  wire       reset,    // reset
-    input  wire       en,       // TX enable
+    input  wire       enable,   // TX enable
     input  wire       valid,    // start transaction
     input  wire [7:0] in,       // data to transmit
     output reg        out,      // TX line
@@ -60,10 +60,6 @@ module UARTTransmitter #(
     reg [7:0] data = 8'b0; // to store a copy of input data
     reg [2:0] bitIdx = 3'b0; // for 8-bit data
 
-    initial begin
-        ready <= 0;
-    end
-
     always @(posedge clk) begin
         if (reset) begin
             ready <= 0;
@@ -72,7 +68,7 @@ module UARTTransmitter #(
             data <= 8'b0;
             state <= `IDLE;
             txCounter <= 0;
-        end else if (en & ready & valid) begin
+        end else if (enable & ready & valid) begin
             data    <= in; // latch input data
             ready   <= 1'b0;
             state   <= `START_BIT;

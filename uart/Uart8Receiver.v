@@ -48,7 +48,7 @@ module UARTReceiver #(
 )(
     input  wire       clk,      // clock
     input  wire       reset,    // reset
-    input  wire       en,       // enable
+    input  wire       enable,   // enable
     input  wire       in,       // RX line
     input  wire       ready,    // OK to transmit
     output reg  [7:0] out,      // received data
@@ -66,7 +66,7 @@ module UARTReceiver #(
     reg [7:0] receivedData = 8'b0; // temporary storage for input data
 
     always @(posedge clk) begin
-        if (reset || !en) begin
+        if (reset || !enable) begin
             state <= `RESET;
             rxCounter <= 0;
         end else if (rxCounter < MAX_RATE_RX - 1) begin
