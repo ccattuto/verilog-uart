@@ -2,9 +2,11 @@
 // Simple Verilog implementation of an UART receiver
 //
 //  - 8N1 only (8-bit data word, 1 start bit, 1 stop bit)
-//  - "valid" goes high for exactly 1 clock cycle after successful RX 
+//  - "valid" goes high after successful RX and stays high for at least 1 clock cycle
+//  - "valid" is cleared as soon as a high "ready" is detected
 //  - internal baud rate generation
 //  - 16x baud rate oversampling, majority voting over 3 samples for bit sensing
+//  - buffered read: a new RX can start before the last byte has been read
 //  - tested on an FPGA at 115200 baud driven by a 48 MHz clock
 //
 //
@@ -48,6 +50,7 @@ module UARTReceiver #(
     input  wire       reset,    // reset
     input  wire       en,       // enable
     input  wire       in,       // RX line
+    input  wire       ready,    // OK to transmit
     output reg  [7:0] out,      // received data
     output reg        valid,    // RX completed
     output reg        err       // error while receiving data
@@ -62,13 +65,6 @@ module UARTReceiver #(
     reg [3:0] clockCount = 4'b0; // count clocks for 16x oversample
     reg [7:0] receivedData = 8'b0; // temporary storage for input data
 
-    initial begin
-        out <= 8'b0;
-        err <= 0;
-        valid <= 0;
-        inputSw = 3'b111;
-    end
-
     always @(posedge clk) begin
         if (reset || !en) begin
             state <= `RESET;
@@ -76,7 +72,9 @@ module UARTReceiver #(
         end else if (rxCounter < MAX_RATE_RX - 1) begin
             // RX clock
             rxCounter <= rxCounter + 1;
-            valid <= 0; // make sure valid flag stays high for only 1 clock cycle
+            if (ready) begin
+                valid <= 0;
+            end
         end else begin
             rxCounter <= 0;
 
@@ -97,10 +95,8 @@ module UARTReceiver #(
                 end
 
                 `IDLE: begin
-                    valid <= 0;
                     if (clockCount >= 4'h5) begin
                         state <= `DATA_BITS;
-                        out <= 8'b0;
                         bitIdx <= 3'b0;
                         clockCount <= 4'b0;
                         receivedData <= 8'b0;
@@ -145,7 +141,9 @@ module UARTReceiver #(
                     if (clockCount == 4'h8) begin
                         state <= `IDLE;
                         valid <= 1;
-                        out <= receivedData;
+                        if (!valid) begin // silently drop incoming byte in case of overrun
+                            out <= receivedData;
+                        end
                         clockCount <= 4'b0;
                     end else begin
                         clockCount <= clockCount + 1;
