@@ -89,7 +89,7 @@ module UARTReceiver #(
                     bitIdx <= 3'b0;
                     clockCount <= 4'b0;
                     receivedData <= 8'b0;
-                    if (en) begin
+                    if (enable) begin
                         state <= `IDLE;
                     end
                 end
