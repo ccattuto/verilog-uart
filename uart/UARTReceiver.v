@@ -52,24 +52,24 @@ module UARTReceiver #(
     input  wire       ready,    // OK to transmit
     output reg  [7:0] out,      // received data
     output reg        valid,    // RX completed
-    output reg        err,      // frame error
+    output reg        error,    // frame error
     output reg        overrun   // overrun
 );
-    parameter MAX_RATE_RX = CLOCK_RATE / (BAUD_RATE * 16); // 16x oversample
-    parameter RX_CNT_WIDTH = $clog2(MAX_RATE_RX);
+    parameter RX_CLOCK_PERIOD = CLOCK_RATE / (BAUD_RATE * 16); // 16x oversample
+    parameter RX_CNT_WIDTH = $clog2(RX_CLOCK_PERIOD);
     reg [RX_CNT_WIDTH - 1:0] rxCounter = 0;
 
     reg [2:0] state = `RESET;
-    reg [2:0] bitIdx = 3'b0; // for 8-bit data
-    reg [2:0] inputSw = 3'b111; // shift reg for input signal state
+    reg [2:0] bitIndex = 3'b0; // for 8-bit data
+    reg [2:0] inputReg = 3'b111; // shift reg for input signal state
     reg [3:0] clockCount = 4'b0; // count clocks for 16x oversample
-    reg [7:0] receivedData = 8'b0; // temporary storage for input data
+    reg [7:0] data = 8'b0; // temporary storage for input data
 
     always @(posedge clk) begin
         if (reset || !enable) begin
             state <= `RESET;
             rxCounter <= 0;
-        end else if (rxCounter < MAX_RATE_RX - 1) begin
+        end else if (rxCounter < RX_CLOCK_PERIOD - 1) begin
             // RX clock
             rxCounter <= rxCounter + 1;
             if (ready) begin
@@ -78,18 +78,18 @@ module UARTReceiver #(
         end else begin
             rxCounter <= 0;
 
-            inputSw <= { inputSw[1], inputSw[0], in };
+            inputReg <= { inputReg[1], inputReg[0], in };
 
             case (state)
                 `RESET: begin
                     out <= 8'b0;
-                    err <= 0;
+                    error <= 0;
                     overrun <= 0;
                     valid <= 0;
-                    inputSw <= 3'b111;
-                    bitIdx <= 3'b0;
+                    inputReg <= 3'b111;
+                    bitIndex <= 3'b0;
                     clockCount <= 4'b0;
-                    receivedData <= 8'b0;
+                    data <= 8'b0;
                     if (enable) begin
                         state <= `IDLE;
                     end
@@ -98,15 +98,15 @@ module UARTReceiver #(
                 `IDLE: begin
                     if (clockCount >= 4'h5) begin
                         state <= `DATA_BITS;
-                        bitIdx <= 3'b0;
+                        bitIndex <= 3'b0;
                         clockCount <= 4'b0;
-                        receivedData <= 8'b0;
-                        err <= 0;
+                        data <= 8'b0;
+                        error <= 0;
                         overrun <= 0;
-                    end else if (!(|inputSw) || (|clockCount)) begin
+                    end else if (!(|inputReg) || (|clockCount)) begin
                         // Check bit to make sure it's still low
-                        if (|inputSw) begin
-                            err <= 1;
+                        if (|inputReg) begin
+                            error <= 1;
                             state <= `RESET;
                         end
                         clockCount <= clockCount + 1;
@@ -117,12 +117,12 @@ module UARTReceiver #(
                 `DATA_BITS: begin
                     if (&clockCount) begin // save one bit of received data
                         clockCount <= 4'b0;
-                        receivedData[bitIdx] <= (inputSw[0] & inputSw[1]) | (inputSw[0] & inputSw[2]) | (inputSw[1] & inputSw[2]);
-                        if (&bitIdx) begin
-                            bitIdx <= 3'b0;
+                        data[bitIndex] <= (inputReg[0] & inputReg[1]) | (inputReg[0] & inputReg[2]) | (inputReg[1] & inputReg[2]);
+                        if (&bitIndex) begin
+                            bitIndex <= 3'b0;
                             state <= `STOP_BIT;
                         end else begin
-                            bitIdx <= bitIdx + 1;
+                            bitIndex <= bitIndex + 1;
                         end
                     end else begin
                         clockCount <= clockCount + 1;
@@ -131,10 +131,10 @@ module UARTReceiver #(
 
                 `STOP_BIT: begin
                     if (&clockCount) begin
-                        if (&inputSw) begin
+                        if (&inputReg) begin
                             valid <= 1;
                             if (!valid) begin
-                                out <= receivedData;
+                                out <= data;
                             end else begin
                                 overrun <= 1;
                             end
