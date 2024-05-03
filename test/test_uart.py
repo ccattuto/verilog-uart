@@ -10,7 +10,7 @@ import random
 async def transmit(dut):
     """TX with randomized payload / clock skew / inter-TX delay."""
 
-    # 25 Mhz clock
+    # ~24 Mhz clock
     cocotb.start_soon(Clock(dut.clk, 42, units='ns').start())
 
     # reset
