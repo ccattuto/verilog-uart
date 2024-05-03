@@ -8,10 +8,10 @@ import random
 
 @cocotb.test(timeout_time=50, timeout_unit='ms')
 async def transmit(dut):
-    """TX with randomized payload, clock skew, inter-TX delay."""
+    """TX with randomized payload / clock skew / inter-TX delay."""
 
     # 25 Mhz clock
-    cocotb.start_soon(Clock(dut.clk, 40, units='ns').start())
+    cocotb.start_soon(Clock(dut.clk, 42, units='ns').start())
 
     # reset
     dut.tx_reset.value = 1
@@ -42,8 +42,8 @@ async def transmit(dut):
         # set valid back to 0
         dut.tx_valid.value = 0
 
-        # randomized RX frequency skew (+/- 1%)
-        skew = 1.0 + (random.random() - 0.5) / 50 * 1
+        # randomized RX frequency skew (+/- 2%)
+        skew = 1.0 + (random.random() - 0.5) / 50 * 2
 
         # wait 1/2 bit
         await Timer(int(0.5 / 115200. * skew * 1e12), units="ps")
@@ -63,7 +63,7 @@ async def transmit(dut):
 
 @cocotb.test(timeout_time=50, timeout_unit='ms')
 async def receive(dut):
-    """RX with randomized payload."""
+    """RX with randomized payload / clock skew / inter-TX delay."""
 
     # ~24 Mhz clock
     cocotb.start_soon(Clock(dut.clk, 42, units='ns').start())
@@ -79,57 +79,48 @@ async def receive(dut):
 
     # check valid=0, err=0
     assert dut.rx_valid.value == 0
-    assert dut.rx_err.value == 0
+    assert dut.rx_error.value == 0
 
     # check internal state of receiver
     assert dut.uart_receiver.clockCount == 0
     assert dut.uart_receiver.bitIndex == 0
     assert dut.uart_receiver.inputReg == 7
-
-    # random delay
-    await Timer(100 + random.randint(0, 1000), units="ns")
-    assert dut.rx_valid.value == 0
     
     # run 100 randomized tests
     for count in range(100):
         dut.rx_ready.value = 0
 
-        # # random delay
-        # await Timer(100 + random.randint(0, 1000), units="ns")
-        # assert dut.rx_valid.value == 0
+        # random delay
+        await Timer(100 + random.randint(0, 1000), units="ns")
+        assert dut.rx_valid.value == 0
 
         # prepare random test data
         TEST_BYTE = random.randint(0,255) # 0xA5
         TEST_BITS_LSB = [(TEST_BYTE >> s) & 1 for s in range(8)]
 
+        # randomized TX frequency skew (+/- 2%)
+        skew = 1.0 + (random.random() - 0.5) / 50 * 2
+
         # send start bit (0), 8 data bits, stop bit (1)
         for tx_bit in [0] + TEST_BITS_LSB + [1]:
             dut.uart_rx.value = tx_bit
-            await Timer(int(1 / 115200. * 1e12), units="ps")
-            #dut.uart_receiver.bitIndex._log.info(f"bitIndex={dut.uart_receiver.bitIndex.value}")
-            #dut.uart_receiver.inputReg._log.info(f"inputReg={dut.uart_receiver.inputReg.value}")
-            #dut.uart_receiver.clockCount._log.info(f"clockCount={dut.uart_receiver.clockCount.value}")
-            #dut.uart_receiver.data._log.info(f"data={dut.uart_receiver.data.value}")
-            #dut.uart_receiver.state._log.info(f"state={dut.uart_receiver.state.value}")
+            await Timer(int(1 / 115200. * skew * 1e12), units="ps")
 
         # random delay
-        #await Timer(100 + random.randint(0, 1000), units="ns")
-    
+        await Timer(100 + random.randint(0, 1000), units="ns")
+        assert dut.rx_valid.value == 1
+
         dut.rx_ready.value = 1
 
-        # wait for valid transition, check that valid=1 and payload is correct
+        # wait for valid transition
         await Edge(dut.rx_valid)
-        #dut.uart_receiver.state._log.info(f"state={dut.uart_receiver.state.value}")
-        #assert dut.uart_receiver.state == 2
-        #dut.rx_err._log.info(f"rx_err={dut.rx_err.value}")
-        #dut.rx_valid._log.info(f"rx_valid={dut.rx_valid.value}")
-        #dut.uart_receiver.data._log.info(f"data={dut.uart_receiver.data.value}")
-        #dut.uart_receiver.out._log.info(f"out={dut.uart_receiver.out.value}")
-        #dut.rx_overrun._log.info(f"overrun={dut.rx_overrun.value}")
+        assert dut.rx_valid.value == 0
 
+        # check payload and valid/error/overflow flags
         assert dut.rx_data.value == TEST_BYTE
+        assert dut.rx_error.value == 0
+        assert dut.rx_overrun.value == 0
 
         # randomized delay
-        #if random.random() > 0.2:
-        #    await Timer(random.randint(1,10), units='us')
+        await Timer(random.randint(1,10), units='us')
 

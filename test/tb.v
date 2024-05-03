@@ -28,7 +28,7 @@ UARTTransmitter #(
 wire rx_enable;
 assign rx_enable = 1;
 
-wire rx_reset, rx_valid, rx_ready, rx_err, rx_overrun;
+wire rx_reset, rx_valid, rx_ready, rx_error, rx_overrun;
 wire [7:0] rx_data;
 wire uart_rx;
 
@@ -43,7 +43,7 @@ UARTReceiver #(
     .ready(rx_ready),       // OK to transmit
     .out(rx_data),          // received data
     .valid(rx_valid),       // RX completed
-    .error(rx_err),           // error while receiving data
+    .error(rx_error),           // error while receiving data
     .overrun(rx_overrun)
 );
 
