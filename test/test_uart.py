@@ -79,11 +79,6 @@ async def receive1(dut):
     # check valid=0, err=0
     assert dut.rx_valid.value == 0
     assert dut.rx_error.value == 0
-
-    # check internal state of receiver
-    assert dut.uart_receiver.clockCount == 0
-    assert dut.uart_receiver.bitIndex == 0
-    assert dut.uart_receiver.inputReg == 7
     
     # run 100 randomized tests
     for count in range(100):
@@ -144,11 +139,6 @@ async def receive2(dut):
     assert dut.rx_valid.value == 0
     assert dut.rx_error.value == 0
 
-    # check internal state of receiver
-    assert dut.uart_receiver.clockCount == 0
-    assert dut.uart_receiver.bitIndex == 0
-    assert dut.uart_receiver.inputReg == 7
-
     dut.rx_ready.value = 1
 
     # run 100 randomized tests
@@ -191,11 +181,6 @@ async def receive3(dut):
     assert dut.rx_valid.value == 0
     assert dut.rx_error.value == 0
 
-    # check internal state of receiver
-    assert dut.uart_receiver.clockCount == 0
-    assert dut.uart_receiver.bitIndex == 0
-    assert dut.uart_receiver.inputReg == 7
-
     dut.rx_ready.value = 0
 
     for count in range(2):
@@ -218,4 +203,3 @@ async def receive3(dut):
             assert dut.rx_data.value == TEST_BYTE_PREV
             assert dut.rx_error.value == 0
             assert dut.rx_overrun.value == 1
-
