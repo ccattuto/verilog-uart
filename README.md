@@ -4,7 +4,7 @@ Simple 8-bit UART implementation in [Verilog HDL](https://en.wikipedia.org/wiki/
 
 This is originally based on [verilog-uart](https://github.com/hell03end/verilog-uart), which doesn't work. It fixes several issues with the transmit and receive code, adds majority voting for bit sampling, and introduces valid/ready signals for control. It was synthesized using [Yosys](https://github.com/YosysHQ/yosys) and successfully tested on an FPGA (up to 115200 baud driven by a 48 MHz clock, both transmit and receive.)
 
-It assumes 8 data bits, 1 start bit, 1 stop bit, and no parity. The receiver uses 16x oversampling and majority voting over 3 consecutive samples. The transmit and receive modules are separate and can be used independently. 
+It assumes 8 data bits, 1 start bit, 1 stop bit, and no parity. The receiver uses 16x oversampling, majority voting over 3 consecutive samples and double buffering of the received byte. The transmit and receive modules are separate and can be used independently. 
 
 
 ## UART Transmitter
