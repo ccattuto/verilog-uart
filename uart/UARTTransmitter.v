@@ -58,13 +58,13 @@ module UARTTransmitter #(
     
     reg [2:0] state = `IDLE;
     reg [7:0] data = 8'b0; // to store a copy of input data
-    reg [2:0] bitIdx = 3'b0; // for 8-bit data
+    reg [2:0] bitIndex = 3'b0; // for 8-bit data
 
     always @(posedge clk) begin
         if (reset) begin
             ready <= 0;
             out <= 1; 
-            bitIdx <= 3'b0;
+            bitIndex <= 3'b0;
             data <= 8'b0;
             state <= `IDLE;
             txCounter <= 0;
@@ -85,7 +85,7 @@ module UARTTransmitter #(
                 `IDLE: begin
                     out <= 1; // drive line high
                     ready <= 1;
-                    bitIdx <= 3'b0;
+                    bitIndex <= 3'b0;
                     data <= 8'b0;
                 end
 
@@ -95,12 +95,12 @@ module UARTTransmitter #(
                 end
 
                 `DATA_BITS: begin // Wait 8 clock cycles for data bits to be sent
-                    out <= data[bitIdx];
-                    if (&bitIdx) begin
-                        bitIdx <= 3'b0;
+                    out <= data[bitIndex];
+                    if (&bitIndex) begin
+                        bitIndex <= 3'b0;
                         state <= `STOP_BIT;
                     end else begin
-                        bitIdx <= bitIdx + 1;
+                        bitIndex <= bitIndex + 1;
                     end
                 end
 
