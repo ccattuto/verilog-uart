@@ -43,7 +43,8 @@ It assumes 8 data bits, 1 start bit, 1 stop bit, and no parity. The receiver use
 * `ready` [input wire] - driven high to signal that the received byte in `out` was processed and a new RX transaction can begin
 * `out` [output 8-bit register] - received byte
 * `valid` [output register] - goes high when `out` contains a received byte
-* `err` [output register] - high when an error occurred during RX
+* `error` [output register] - high when a frame error occurred
+* `overrun` [output register] - high when RX overrun occurred
 
 ### Notes
 * 8N1 only (8-bit data word, 1 start bit, 1 stop bit)
@@ -51,6 +52,4 @@ It assumes 8 data bits, 1 start bit, 1 stop bit, and no parity. The receiver use
 * `valid` is cleared as soon as a high `ready` is detected
 * internal baud rate generation
 * 16x baud rate oversampling, majority voting over 3 samples for bit sensing
-* buffered read: a new RX can start before the last byte has been read
-
-
+* double-buffered read: a new RX can start before the last received byte has been read
