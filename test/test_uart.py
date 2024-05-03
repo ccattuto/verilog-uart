@@ -60,9 +60,8 @@ async def transmit(dut):
             await Timer(random.randint(1,10), units='us')
 
 
-
 @cocotb.test(timeout_time=50, timeout_unit='ms')
-async def receive(dut):
+async def receive1(dut):
     """RX with randomized payload / clock skew / inter-TX delay."""
 
     # ~24 Mhz clock
@@ -123,4 +122,100 @@ async def receive(dut):
 
         # randomized delay
         await Timer(random.randint(1,10), units='us')
+
+
+@cocotb.test(timeout_time=50, timeout_unit='ms')
+async def receive2(dut):
+    """Continuous RX with randomized payload / frequency skew."""
+
+    # ~24 Mhz clock
+    cocotb.start_soon(Clock(dut.clk, 42, units='ns').start())
+
+    # drive input high
+    dut.uart_rx.value = 1
+
+    # reset
+    dut.rx_reset.value = 1
+    await Timer(1, units="ms")
+    dut.rx_reset.value = 0
+    await Timer(1, units="ms")
+
+    # check valid=0, err=0
+    assert dut.rx_valid.value == 0
+    assert dut.rx_error.value == 0
+
+    # check internal state of receiver
+    assert dut.uart_receiver.clockCount == 0
+    assert dut.uart_receiver.bitIndex == 0
+    assert dut.uart_receiver.inputReg == 7
+
+    dut.rx_ready.value = 1
+
+    # run 100 randomized tests
+    for count in range(100):
+        # prepare random test data
+        TEST_BYTE = random.randint(0,255) # 0xA5
+        TEST_BITS_LSB = [(TEST_BYTE >> s) & 1 for s in range(8)]
+
+        # randomized TX frequency skew (+/- 2%)
+        skew = 1.0 + (random.random() - 0.5) / 50 * 2
+
+        # send start bit (0), 8 data bits, stop bit (1)
+        for tx_bit in [0] + TEST_BITS_LSB + [1]:
+            dut.uart_rx.value = tx_bit
+            await Timer(int(1 / 115200. * skew * 1e12), units="ps")
+
+        # check payload and valid/error/overflow flags
+        assert dut.rx_data.value == TEST_BYTE
+        assert dut.rx_error.value == 0
+        assert dut.rx_overrun.value == 0
+
+
+@cocotb.test(timeout_time=50, timeout_unit='ms')
+async def receive3(dut):
+    """RX overrun."""
+
+    # ~24 Mhz clock
+    cocotb.start_soon(Clock(dut.clk, 42, units='ns').start())
+
+    # drive input high
+    dut.uart_rx.value = 1
+
+    # reset
+    dut.rx_reset.value = 1
+    await Timer(1, units="ms")
+    dut.rx_reset.value = 0
+    await Timer(1, units="ms")
+
+    # check valid=0, err=0
+    assert dut.rx_valid.value == 0
+    assert dut.rx_error.value == 0
+
+    # check internal state of receiver
+    assert dut.uart_receiver.clockCount == 0
+    assert dut.uart_receiver.bitIndex == 0
+    assert dut.uart_receiver.inputReg == 7
+
+    dut.rx_ready.value = 0
+
+    for count in range(2):
+        # prepare random test data
+        TEST_BYTE = random.randint(0,255) # 0xA5
+        TEST_BITS_LSB = [(TEST_BYTE >> s) & 1 for s in range(8)]
+
+        # send start bit (0), 8 data bits, stop bit (1)
+        for tx_bit in [0] + TEST_BITS_LSB + [1]:
+            dut.uart_rx.value = tx_bit
+            await Timer(int(1 / 115200. * 1e12), units="ps")
+
+        # check payload and valid/error/overflow flags
+        if (count == 0):
+            TEST_BYTE_PREV = TEST_BYTE
+            assert dut.rx_data.value == TEST_BYTE
+            assert dut.rx_error.value == 0
+            assert dut.rx_overrun.value == 0
+        else:
+            assert dut.rx_data.value == TEST_BYTE_PREV
+            assert dut.rx_error.value == 0
+            assert dut.rx_overrun.value == 1
 
