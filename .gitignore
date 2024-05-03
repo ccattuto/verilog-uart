@@ -1,0 +1,4 @@
+test/sim_build/cmds.f
+test/sim_build/sim.vvp
+test/__pycache__/test_uart.*
+test/results.xml
