@@ -39,8 +39,7 @@
 `define RESET       3'b001
 `define IDLE        3'b010
 `define DATA_BITS   3'b100
-`define WAIT_STOP   3'b101
-`define STOP_BIT    3'b110
+`define STOP_BIT    3'b101
 
 module UARTReceiver #(
     parameter CLOCK_RATE = 50000000,
@@ -53,7 +52,8 @@ module UARTReceiver #(
     input  wire       ready,    // OK to transmit
     output reg  [7:0] out,      // received data
     output reg        valid,    // RX completed
-    output reg        err       // error while receiving data
+    output reg        err,      // frame error
+    output reg        overrun   // overrun
 );
     parameter MAX_RATE_RX = CLOCK_RATE / (BAUD_RATE * 16); // 16x oversample
     parameter RX_CNT_WIDTH = $clog2(MAX_RATE_RX);
@@ -84,6 +84,7 @@ module UARTReceiver #(
                 `RESET: begin
                     out <= 8'b0;
                     err <= 0;
+                    overrun <= 0;
                     valid <= 0;
                     inputSw <= 3'b111;
                     bitIdx <= 3'b0;
@@ -101,6 +102,7 @@ module UARTReceiver #(
                         clockCount <= 4'b0;
                         receivedData <= 8'b0;
                         err <= 0;
+                        overrun <= 0;
                     end else if (!(|inputSw) || (|clockCount)) begin
                         // Check bit to make sure it's still low
                         if (|inputSw) begin
@@ -118,7 +120,7 @@ module UARTReceiver #(
                         receivedData[bitIdx] <= (inputSw[0] & inputSw[1]) | (inputSw[0] & inputSw[2]) | (inputSw[1] & inputSw[2]);
                         if (&bitIdx) begin
                             bitIdx <= 3'b0;
-                            state <= `WAIT_STOP;
+                            state <= `STOP_BIT;
                         end else begin
                             bitIdx <= bitIdx + 1;
                         end
@@ -127,32 +129,19 @@ module UARTReceiver #(
                     end
                 end
 
-                `WAIT_STOP: begin
-                    if (&clockCount) begin
-                        clockCount <= 4'b0;
-                        state <= `STOP_BIT;
-                    end else begin
-                        clockCount <= clockCount + 1;
-                    end
-                end
-
-                // check for at least half a stop bit
                 `STOP_BIT: begin
-                    if (clockCount == 4'h8) begin
-                        state <= `IDLE;
-                        valid <= 1;
-                        if (!valid) begin // silently drop incoming byte in case of overrun
-                            out <= receivedData;
-                        end
-                        clockCount <= 4'b0;
-                    end else begin
-                        clockCount <= clockCount + 1;
-                        // Check bit to make sure it's still high
-                        if (!(&inputSw)) begin
-                            err <= 1;
-                            state <= `RESET;
+                    if (&clockCount) begin
+                        if (&inputSw) begin
+                            valid <= 1;
+                            if (!valid) begin
+                                out <= receivedData;
+                            end else begin
+                                overrun <= 1;
+                            end
+                            state <= `IDLE;
                         end
                     end
+                    clockCount <= clockCount + 1;
                 end
 
                 default: state <= `RESET;
