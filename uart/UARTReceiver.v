@@ -132,9 +132,9 @@ module UARTReceiver #(
                 `STOP_BIT: begin
                     if (&sampleCount) begin
                         if (&inputReg) begin
-                            valid <= 1;
                             if (!valid) begin
                                 out <= data;
+                                valid <= 1;
                             end else begin
                                 overrun <= 1;
                             end
