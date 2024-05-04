@@ -52,13 +52,13 @@ module UARTTransmitter #(
     output reg        out,      // TX line
     output reg        ready     // ready for TX
 );
-    parameter MAX_RATE_TX = CLOCK_RATE / BAUD_RATE;
+    parameter MAX_RATE_TX = $rtoi(CLOCK_RATE / BAUD_RATE + 0.5);
     parameter TX_CNT_WIDTH = $clog2(MAX_RATE_TX);
     reg [TX_CNT_WIDTH - 1:0] txCounter = 0;
     
-    reg [2:0] state = `IDLE;
-    reg [7:0] data = 8'b0; // to store a copy of input data
-    reg [2:0] bitIndex = 3'b0; // for 8-bit data
+    reg [2:0] state;    // FSM state
+    reg [7:0] data;     // to store a copy of input data
+    reg [2:0] bitIndex; // for 8-bit data
 
     always @(posedge clk) begin
         if (reset) begin

@@ -55,15 +55,15 @@ module UARTReceiver #(
     output reg        error,    // frame error
     output reg        overrun   // overrun
 );
-    parameter RX_CLOCK_PERIOD = CLOCK_RATE / (BAUD_RATE * 16); // 16x oversample
+    parameter RX_CLOCK_PERIOD = $rtoi(CLOCK_RATE / (BAUD_RATE * 16) + 0.5); // 16x oversample
     parameter RX_CNT_WIDTH = $clog2(RX_CLOCK_PERIOD);
-    reg [RX_CNT_WIDTH - 1:0] rxCounter = 0;
+    reg [RX_CNT_WIDTH - 1:0] rxCounter;
 
-    reg [2:0] state = `RESET;
-    reg [2:0] bitIndex = 3'b0; // for 8-bit data
-    reg [2:0] inputReg = 3'b111; // shift reg for input signal state
-    reg [3:0] clockCount = 4'b0; // count clocks for 16x oversample
-    reg [7:0] data = 8'b0; // temporary storage for input data
+    reg [2:0] state;        // FSM state
+    reg [2:0] bitIndex;     // for 8-bit data
+    reg [2:0] inputReg;     // shift reg for input signal
+    reg [3:0] sampleCount;   // clock count for 16x oversample
+    reg [7:0] data;         // input data buffer
 
     always @(posedge clk) begin
         if (reset || !enable) begin
@@ -88,7 +88,7 @@ module UARTReceiver #(
                     valid <= 0;
                     inputReg <= 3'b111;
                     bitIndex <= 3'b0;
-                    clockCount <= 4'b0;
+                    sampleCount <= 4'b0;
                     data <= 8'b0;
                     if (enable) begin
                         state <= `IDLE;
@@ -96,27 +96,27 @@ module UARTReceiver #(
                 end
 
                 `IDLE: begin
-                    if (clockCount >= 4'h5) begin
+                    if (sampleCount >= 4'h5) begin
                         state <= `DATA_BITS;
                         bitIndex <= 3'b0;
-                        clockCount <= 4'b0;
+                        sampleCount <= 4'b0;
                         data <= 8'b0;
                         error <= 0;
                         overrun <= 0;
-                    end else if (!(|inputReg) || (|clockCount)) begin
+                    end else if (!(|inputReg) || (|sampleCount)) begin
                         // Check bit to make sure it's still low
                         if (|inputReg) begin
                             error <= 1;
                             state <= `RESET;
                         end
-                        clockCount <= clockCount + 1;
+                        sampleCount <= sampleCount + 1;
                     end
                 end
 
                 // receive 8 bits of data
                 `DATA_BITS: begin
-                    if (&clockCount) begin // save one bit of received data
-                        clockCount <= 4'b0;
+                    if (&sampleCount) begin // save one bit of received data
+                        sampleCount <= 4'b0;
                         data[bitIndex] <= (inputReg[0] & inputReg[1]) | (inputReg[0] & inputReg[2]) | (inputReg[1] & inputReg[2]);
                         if (&bitIndex) begin
                             bitIndex <= 3'b0;
@@ -125,12 +125,12 @@ module UARTReceiver #(
                             bitIndex <= bitIndex + 1;
                         end
                     end else begin
-                        clockCount <= clockCount + 1;
+                        sampleCount <= sampleCount + 1;
                     end
                 end
 
                 `STOP_BIT: begin
-                    if (&clockCount) begin
+                    if (&sampleCount) begin
                         if (&inputReg) begin
                             valid <= 1;
                             if (!valid) begin
@@ -141,7 +141,7 @@ module UARTReceiver #(
                             state <= `IDLE;
                         end
                     end
-                    clockCount <= clockCount + 1;
+                    sampleCount <= sampleCount + 1;
                 end
 
                 default: state <= `RESET;
