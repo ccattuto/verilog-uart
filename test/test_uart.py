@@ -56,7 +56,7 @@ async def receive1(dut):
         await Timer(random.randint(500,2000), units='ns')
 
 
-#@cocotb.test(timeout_time=50, timeout_unit='ms')
+@cocotb.test(timeout_time=50, timeout_unit='ms')
 async def receive2(dut):
     """Continuous RX with randomized payload."""
 
