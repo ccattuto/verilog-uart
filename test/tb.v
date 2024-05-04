@@ -10,7 +10,7 @@ wire [7:0] tx_data;
 wire uart_tx;
 
 UARTTransmitter #(
-    .CLOCK_RATE(24000000),
+    .CLOCK_RATE(50000000),
     .BAUD_RATE(115200)
 ) uart_transmitter (
     .clk(clk),              // clock
@@ -33,7 +33,7 @@ wire [7:0] rx_data;
 wire uart_rx;
 
 UARTReceiver #(
-    .CLOCK_RATE(24000000),
+    .CLOCK_RATE(50000000),
     .BAUD_RATE(115200)
 ) uart_receiver (
     .clk(clk),              // clock

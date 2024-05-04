@@ -10,8 +10,8 @@ import random
 async def transmit(dut):
     """TX with randomized payload / clock skew / inter-TX delay."""
 
-    # ~24 Mhz clock
-    cocotb.start_soon(Clock(dut.clk, 42, units='ns').start())
+    # 50 Mhz clock
+    cocotb.start_soon(Clock(dut.clk, 20, units='ns').start())
 
     # reset
     dut.tx_reset.value = 1
@@ -57,15 +57,15 @@ async def transmit(dut):
 
         # randomized inter-TX interval
         if random.random() > 0.2:
-            await Timer(random.randint(1,10), units='us')
+            await Timer(random.randint(1,5), units='us')
 
 
 @cocotb.test(timeout_time=50, timeout_unit='ms')
 async def receive1(dut):
     """RX with randomized payload / clock skew / inter-TX delay."""
 
-    # ~24 Mhz clock
-    cocotb.start_soon(Clock(dut.clk, 42, units='ns').start())
+    # 50 Mhz clock
+    cocotb.start_soon(Clock(dut.clk, 20, units='ns').start())
 
     # drive input high
     dut.uart_rx.value = 1
@@ -116,15 +116,15 @@ async def receive1(dut):
         assert dut.rx_overrun.value == 0
 
         # randomized delay
-        await Timer(random.randint(1,10), units='us')
+        await Timer(random.randint(1,5), units='us')
 
 
 @cocotb.test(timeout_time=50, timeout_unit='ms')
 async def receive2(dut):
     """Continuous RX with randomized payload / frequency skew."""
 
-    # ~24 Mhz clock
-    cocotb.start_soon(Clock(dut.clk, 42, units='ns').start())
+    # 50 Mhz clock
+    cocotb.start_soon(Clock(dut.clk, 20, units='ns').start())
 
     # drive input high
     dut.uart_rx.value = 1
@@ -165,8 +165,8 @@ async def receive2(dut):
 async def receive3(dut):
     """RX overrun."""
 
-    # ~24 Mhz clock
-    cocotb.start_soon(Clock(dut.clk, 42, units='ns').start())
+    # 50 Mhz clock
+    cocotb.start_soon(Clock(dut.clk, 20, units='ns').start())
 
     # drive input high
     dut.uart_rx.value = 1
