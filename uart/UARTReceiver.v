@@ -139,6 +139,9 @@ module UARTReceiver #(
                                 overrun <= 1;
                             end
                             state <= `IDLE;
+                        end else begin
+                            error <= 1;
+                            state <= `RESET;
                         end
                     end
                     sampleCount <= sampleCount + 1;
