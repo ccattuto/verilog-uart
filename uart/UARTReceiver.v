@@ -64,7 +64,7 @@ module UARTReceiver #(
     reg [2:0] inputReg;     // shift reg for input signal
     reg [3:0] sampleCount;   // clock count for 16x oversample
     reg [7:0] data;         // input data buffer
-    reg data_ready;
+    reg out_latched;
 
     always @(posedge clk) begin
         if (reset || !enable) begin
@@ -73,8 +73,8 @@ module UARTReceiver #(
         end else if (rxCounter < RX_CLOCK_PERIOD - 1) begin
             // RX clock
             rxCounter <= rxCounter + 1;
-            if (data_ready) begin
-                data_ready <= 0;
+            if (out_latched) begin
+                out_latched <= 0;
                 valid <= 1;
             end else if (ready) begin
                 valid <= 0;
@@ -94,7 +94,7 @@ module UARTReceiver #(
                     bitIndex <= 3'b0;
                     sampleCount <= 4'b0;
                     data <= 8'b0;
-                    data_ready <= 0;
+                    out_latched <= 0;
                     if (enable) begin
                         state <= `IDLE;
                     end
@@ -106,7 +106,7 @@ module UARTReceiver #(
                         bitIndex <= 3'b0;
                         sampleCount <= 4'b0;
                         data <= 8'b0;
-                        data_ready <= 0;
+                        out_latched <= 0;
                         error <= 0;
                         overrun <= 0;
                     end else if (!(|inputReg) || (|sampleCount)) begin
@@ -140,7 +140,7 @@ module UARTReceiver #(
                         if (&inputReg) begin
                             if (!valid) begin
                                 out <= data;
-                                data_ready <= 1;
+                                out_latched <= 1;
                             end else begin
                                 overrun <= 1;
                             end
