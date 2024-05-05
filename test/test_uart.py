@@ -5,8 +5,8 @@ from cocotb.triggers import Edge, Timer
 from cocotb.clock import Clock
 import random
 
-NUM_TESTS = 100
-BAUD_MAX_PERCENT = 2
+NUM_RUNS = 100
+BAUD_ERR_PERCENT = 2
 
 @cocotb.test(timeout_time=50, timeout_unit='ms')
 async def transmit(dut):
@@ -18,12 +18,12 @@ async def transmit(dut):
     await check_tx_reset(dut)
 
     # carry out 100 transmissions
-    for count in range(NUM_TESTS):
+    for count in range(NUM_RUNS):
         # randomized payload
         TEST_BYTE = random.randint(0,255)
 
         # randomized baud multiplier (+/- 2%)
-        baud_mult = 1.0 + (random.random() - 0.5) / 50 * BAUD_MAX_PERCENT
+        baud_mult = 1.0 + (random.random() - 0.5) / 50 * BAUD_ERR_PERCENT
 
         await check_tx(dut, TEST_BYTE, 115200, baud_mult)
 
@@ -43,12 +43,12 @@ async def receive1(dut):
     await check_rx_reset(dut)
 
     # run 100 randomized tests
-    for count in range(NUM_TESTS):
+    for count in range(NUM_RUNS):
         # randomized payload
         TEST_BYTE = random.randint(0,255)
 
         # randomized baud multiplier (+/- 2%)
-        baud_mult = 1.0 + (random.random() - 0.5) / 50 * BAUD_MAX_PERCENT
+        baud_mult = 1.0 + (random.random() - 0.5) / 50 * BAUD_ERR_PERCENT
 
         await check_rx(dut, TEST_BYTE, 115200, baud_mult)
 
@@ -67,7 +67,7 @@ async def receive2(dut):
     await check_rx_reset(dut)
 
     # run 100 randomized tests
-    for count in range(NUM_TESTS):
+    for count in range(NUM_RUNS):
         # randomized payload
         TEST_BYTE = random.randint(0,255)
         await check_rx_concurrent(dut, TEST_BYTE, 115200, 1.0)
@@ -84,12 +84,12 @@ async def receive3(dut):
     await check_rx_reset(dut)
 
     # run 100 randomized tests
-    for count in range(NUM_TESTS):
+    for count in range(NUM_RUNS):
         # randomized payload
         TEST_BYTE = random.randint(0,255)
 
         # randomized baud multiplier (+/- 2%)
-        baud_mult = 1.0 + (random.random() - 0.5) / 50 * BAUD_MAX_PERCENT
+        baud_mult = 1.0 + (random.random() - 0.5) / 50 * BAUD_ERR_PERCENT
 
         await check_rx_concurrent(dut, TEST_BYTE, 115200, baud_mult)
 
@@ -108,7 +108,7 @@ async def receive4(dut):
     dut.rx_ready.value = 1
 
     # run 100 randomized tests
-    for count in range(NUM_TESTS):
+    for count in range(NUM_RUNS):
         # prepare random test data
         TEST_BYTE = random.randint(0,255)
         TEST_BITS_LSB = [(TEST_BYTE >> s) & 1 for s in range(8)]
@@ -146,7 +146,7 @@ async def receive5(dut):
     dut.rx_ready.value = 1
 
     # run 100 randomized tests
-    for count in range(NUM_TESTS):
+    for count in range(NUM_RUNS):
         # prepare random test data
         TEST_BYTE = random.randint(0,255)
         TEST_BITS_LSB = [(TEST_BYTE >> s) & 1 for s in range(8)]
