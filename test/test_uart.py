@@ -290,10 +290,7 @@ async def check_rx(dut, data, baud, baud_mult):
 
 
 async def fetch_data(valid, data):
-    #valid._log.info("HERE")
     await Edge(valid)
-    #await Timer(100, units="ns")
-    #valid._log.info(f"VALID {valid}")
     return data.value
 
 async def check_rx_concurrent(dut, data, baud, baud_mult):
