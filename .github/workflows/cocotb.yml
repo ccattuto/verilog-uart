@@ -1,0 +1,26 @@
+name: cocotb verilog testing
+
+on: [push]
+
+jobs:
+    cocotb:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v2
+        - name: Set up Python
+          uses: actions/setup-python@v2
+          with:
+            python-version: '3.8'
+        - name: Install dependencies
+          run: |
+            sudo apt update
+            sudo apt install -y iverilog
+            python -m pip install --upgrade pip
+            pip install cocotb
+        - name: Run tests
+          run: |
+            cd $GITHUB_WORKSPACE/test
+            make
+
+
+            
