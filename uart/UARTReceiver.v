@@ -60,18 +60,18 @@ module UARTReceiver #(
     reg [RX_CNT_WIDTH - 1:0] rxCounter;
 
     reg [2:0] state;        // FSM state
-    reg [2:0] bitIndex;     // for 8-bit data
+    reg [2:0] bitIndex;     // bit index
     reg [2:0] inputReg;     // shift reg for input signal
-    reg [3:0] sampleCount;   // clock count for 16x oversample
+    reg [3:0] sampleCount;  // clock count for 16x oversample
     reg [7:0] data;         // input data buffer
-    reg out_latched;
+    reg out_latched;        // out register is valid
 
     always @(posedge clk) begin
         if (reset || !enable) begin
             state <= `RESET;
             rxCounter <= 0;
         end else if (rxCounter < RX_CLOCK_PERIOD - 1) begin
-            // RX clock
+            // RX baud generation
             rxCounter <= rxCounter + 1;
             if (out_latched) begin
                 out_latched <= 0;
@@ -121,7 +121,7 @@ module UARTReceiver #(
 
                 // receive 8 bits of data
                 `DATA_BITS: begin
-                    if (&sampleCount) begin // save one bit of received data
+                    if (&sampleCount) begin
                         sampleCount <= 4'b0;
                         data[bitIndex] <= (inputReg[0] & inputReg[1]) | (inputReg[0] & inputReg[2]) | (inputReg[1] & inputReg[2]);
                         if (&bitIndex) begin

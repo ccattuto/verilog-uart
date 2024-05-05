@@ -56,9 +56,9 @@ module UARTTransmitter #(
     parameter TX_CNT_WIDTH = $clog2(MAX_RATE_TX);
     reg [TX_CNT_WIDTH - 1:0] txCounter = 0;
     
-    reg [2:0] state;    // FSM state
-    reg [7:0] data;     // to store a copy of input data
-    reg [2:0] bitIndex; // for 8-bit data
+    reg [2:0] state;        // FSM state
+    reg [7:0] data;         // input byte
+    reg [2:0] bitIndex;     // bit index
 
     always @(posedge clk) begin
         if (reset) begin
@@ -73,7 +73,7 @@ module UARTTransmitter #(
             ready   <= 1'b0;
             state   <= `START_BIT;
         end else if (txCounter < MAX_RATE_TX - 1) begin
-            // TX clock
+            // TX baud generation
             txCounter <= txCounter + 1;
         end else begin
             txCounter <= 0;
@@ -94,7 +94,7 @@ module UARTTransmitter #(
                     state <= `DATA_BITS;
                 end
 
-                `DATA_BITS: begin // Wait 8 clock cycles for data bits to be sent
+                `DATA_BITS: begin // send data bits
                     out <= data[bitIndex];
                     if (&bitIndex) begin
                         bitIndex <= 3'b0;
@@ -104,7 +104,7 @@ module UARTTransmitter #(
                     end
                 end
 
-                `STOP_BIT: begin // Send out Stop bit (high)
+                `STOP_BIT: begin // send stop bit (high)
                     out <= 1;
                     state <= `IDLE;
                 end
