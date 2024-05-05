@@ -48,7 +48,7 @@ It assumes 8 data bits, 1 start bit, 1 stop bit, and no parity. The receiver use
 
 ### Notes
 * 8N1 only (8-bit data word, 1 start bit, 1 stop bit)
-* `valid` goes high after successful RX and stays high for at least 1 clock cycle
+* `valid` goes high after successful RX
 * `valid` is cleared as soon as a high `ready` is detected
 * internal baud rate generation
 * 16x baud rate oversampling, majority voting over 3 samples for bit sensing
