@@ -70,7 +70,7 @@ module UARTReceiver #(
         if (reset || !enable) begin
             state <= `RESET;
             rxCounter <= 0;
-        end else if (rxCounter < RX_CLOCK_PERIOD - 1) begin
+        end else if (rxCounter < RX_CNT_WIDTH'(RX_CLOCK_PERIOD - 1)) begin
             // RX baud generation
             rxCounter <= rxCounter + 1;
             if (out_latched) begin

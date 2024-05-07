@@ -72,7 +72,7 @@ module UARTTransmitter #(
             data    <= in; // latch input data
             ready   <= 1'b0;
             state   <= `START_BIT;
-        end else if (txCounter < MAX_RATE_TX - 1) begin
+        end else if (txCounter < TX_CNT_WIDTH'(MAX_RATE_TX - 1)) begin
             // TX baud generation
             txCounter <= txCounter + 1;
         end else begin
