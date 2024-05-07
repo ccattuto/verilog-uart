@@ -55,9 +55,9 @@ module UARTReceiver #(
     output reg        error,    // frame error
     output reg        overrun   // overrun
 );
-    parameter RX_CLOCK_PERIOD = $rtoi(CLOCK_RATE / (BAUD_RATE * 16) + 0.5); // 16x oversample
-    parameter RX_CNT_WIDTH = $clog2(RX_CLOCK_PERIOD);
-    reg [RX_CNT_WIDTH - 1:0] rxCounter;
+    localparam RX_PERIOD_COUNT = $rtoi(CLOCK_RATE / (BAUD_RATE * 16) + 0.5); // 16x oversample
+    localparam RX_COUNT_WIDTH = $clog2(RX_PERIOD_COUNT);
+    reg [RX_COUNT_WIDTH-1:0] rxCounter;
 
     reg [2:0] state;        // FSM state
     reg [2:0] bitIndex;     // bit index
@@ -70,7 +70,7 @@ module UARTReceiver #(
         if (reset || !enable) begin
             state <= `RESET;
             rxCounter <= 0;
-        end else if (rxCounter < RX_CNT_WIDTH'(RX_CLOCK_PERIOD - 1)) begin
+        end else if (rxCounter < (RX_PERIOD_COUNT - 1)) begin
             // RX baud generation
             rxCounter <= rxCounter + 1;
             if (out_latched) begin

@@ -52,9 +52,9 @@ module UARTTransmitter #(
     output reg        out,      // TX line
     output reg        ready     // ready for TX
 );
-    parameter MAX_RATE_TX = $rtoi(CLOCK_RATE / BAUD_RATE + 0.5);
-    parameter TX_CNT_WIDTH = $clog2(MAX_RATE_TX);
-    reg [TX_CNT_WIDTH - 1:0] txCounter = 0;
+    localparam TX_PERIOD_COUNT = $rtoi(CLOCK_RATE / BAUD_RATE + 0.5);
+    localparam TX_COUNT_WIDTH = $clog2(TX_PERIOD_COUNT);
+    reg [TX_COUNT_WIDTH-1:0] txCounter = 0;
     
     reg [2:0] state;        // FSM state
     reg [7:0] data;         // input byte
@@ -72,7 +72,7 @@ module UARTTransmitter #(
             data    <= in; // latch input data
             ready   <= 1'b0;
             state   <= `START_BIT;
-        end else if (txCounter < TX_CNT_WIDTH'(MAX_RATE_TX - 1)) begin
+        end else if (txCounter < (TX_PERIOD_COUNT - 1)) begin
             // TX baud generation
             txCounter <= txCounter + 1;
         end else begin
