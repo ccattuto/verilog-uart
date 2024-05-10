@@ -33,13 +33,6 @@
 // Originally based on Dmitry Pchelkin's verilog-uart (https://github.com/hell03end/verilog-uart)
 //
 
- // states of state machine
-`define IDLE        3'b010
-`define START_BIT   3'b011
-`define DATA_BITS   3'b100
-`define WAIT_STOP   3'b101
-`define STOP_BIT    3'b110
-
 module UARTTransmitter #(
     parameter CLOCK_RATE = 50000000,
     parameter BAUD_RATE = 115200
@@ -55,8 +48,11 @@ module UARTTransmitter #(
     localparam TX_PERIOD_COUNT = $rtoi(CLOCK_RATE / BAUD_RATE + 0.5);
     localparam TX_COUNT_WIDTH = $clog2(TX_PERIOD_COUNT);
     reg [TX_COUNT_WIDTH-1:0] txCounter = 0;
-    
-    reg [2:0] state;        // FSM state
+   
+    // state machine
+    localparam IDLE = 1, START_BIT = 2, DATA_BITS = 3, STOP_BIT = 4;
+    reg [2:0] state;
+
     reg [7:0] data;         // input byte
     reg [2:0] bitIndex;     // bit index
 
@@ -66,12 +62,12 @@ module UARTTransmitter #(
             out <= 1; 
             bitIndex <= 3'b0;
             data <= 8'b0;
-            state <= `IDLE;
+            state <= IDLE;
             txCounter <= 0;
         end else if (enable & ready & valid) begin
             data    <= in; // latch input data
             ready   <= 1'b0;
-            state   <= `START_BIT;
+            state   <= START_BIT;
         end else if (txCounter < (TX_PERIOD_COUNT - 1)) begin
             // TX baud generation
             txCounter <= txCounter + 1;
@@ -79,34 +75,34 @@ module UARTTransmitter #(
             txCounter <= 0;
             case (state)
                 default: begin
-                    state <= `IDLE;
+                    state <= IDLE;
                 end
                 
-                `IDLE: begin
+                IDLE: begin
                     out <= 1; // drive line high
                     ready <= 1;
                     bitIndex <= 3'b0;
                     data <= 8'b0;
                 end
 
-                `START_BIT: begin
+                START_BIT: begin
                     out <= 0; // send start bit (low)
-                    state <= `DATA_BITS;
+                    state <= DATA_BITS;
                 end
 
-                `DATA_BITS: begin // send data bits
+                DATA_BITS: begin // send data bits
                     out <= data[bitIndex];
                     if (&bitIndex) begin
                         bitIndex <= 3'b0;
-                        state <= `STOP_BIT;
+                        state <= STOP_BIT;
                     end else begin
                         bitIndex <= bitIndex + 1;
                     end
                 end
 
-                `STOP_BIT: begin // send stop bit (high)
+                STOP_BIT: begin // send stop bit (high)
                     out <= 1;
-                    state <= `IDLE;
+                    state <= IDLE;
                 end
             endcase
         end
