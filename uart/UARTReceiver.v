@@ -54,8 +54,8 @@ module UARTReceiver #(
     reg [RX_COUNT_WIDTH-1:0] rxCounter;
 
     // state machine
-    localparam RESET = 1, IDLE = 2, DATA_BITS = 3, STOP_BIT = 4;
-    reg [2:0] state;
+    localparam RESET = 0, IDLE = 1, DATA_BITS = 2, STOP_BIT = 3;
+    reg [1:0] state;
 
     reg [2:0] bitIndex;     // bit index
     reg [2:0] inputReg;     // shift reg for input signal
@@ -150,7 +150,9 @@ module UARTReceiver #(
                     sampleCount <= sampleCount + 1;
                 end
 
-                default: state <= RESET;
+                default: begin
+                    state <= RESET;
+                end
             endcase
         end
     end

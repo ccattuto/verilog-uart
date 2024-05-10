@@ -50,8 +50,8 @@ module UARTTransmitter #(
     reg [TX_COUNT_WIDTH-1:0] txCounter = 0;
    
     // state machine
-    localparam IDLE = 1, START_BIT = 2, DATA_BITS = 3, STOP_BIT = 4;
-    reg [2:0] state;
+    localparam IDLE = 0, START_BIT = 1, DATA_BITS = 2, STOP_BIT = 3;
+    reg [1:0] state;
 
     reg [7:0] data;         // input byte
     reg [2:0] bitIndex;     // bit index
