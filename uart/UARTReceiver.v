@@ -65,6 +65,15 @@ module UARTReceiver #(
 
     always @(posedge clk) begin
         if (reset || !enable) begin
+            out <= 8'b0;
+            error <= 0;
+            overrun <= 0;
+            valid <= 0;
+            inputReg <= 3'b111;
+            bitIndex <= 3'b0;
+            sampleCount <= 4'b0;
+            data <= 8'b0;
+            out_latched <= 0;
             state <= RESET;
             rxCounter <= 0;
         end else if (rxCounter < (RX_PERIOD_COUNT - 1)) begin
